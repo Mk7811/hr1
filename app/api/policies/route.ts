@@ -1,0 +1,2 @@
+import {NextResponse} from "next/server"; import {db} from "@/lib/db"; import {z} from "zod";
+export async function GET(req:Request){const q=z.string().max(200).catch("").parse(new URL(req.url).searchParams.get("q")??"");const policies=await db.policy.findMany({where:q?{OR:[{title:{contains:q}},{content:{contains:q}},{category:{contains:q}}]}:undefined,select:{id:true,title:true,category:true,content:true,source:true},take:20});return NextResponse.json({policies});}

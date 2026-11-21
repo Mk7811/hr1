@@ -1,0 +1,149 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+enum Role {
+  EMPLOYEE
+  MANAGER
+  HR
+  ADMIN
+}
+
+enum RequestStatus {
+  PENDING
+  APPROVED
+  REJECTED
+}
+
+enum LeaveType {
+  ANNUAL
+  SICK
+  EMERGENCY
+}
+
+model User {
+  id               String            @id @default(cuid())
+  employeeId       String            @unique
+  name             String
+  email            String            @unique
+  passwordHash     String
+  role             Role              @default(EMPLOYEE)
+  department       String
+  salaryCents      Int               @default(0)
+  createdAt        DateTime          @default(now())
+  sessions         Session[]
+  auditLogs        AuditLog[]
+  leaveRequests    LeaveRequest[]
+  overtimeRequests OvertimeRequest[]
+  attendance       Attendance[]
+  contracts        Contract[]
+  payrollRecords   PayrollRecord[]
+}
+
+model Session {
+  id        String   @id @default(cuid())
+  userId    String
+  tokenHash String   @unique
+  expiresAt DateTime
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  createdAt DateTime @default(now())
+}
+
+model Attendance {
+  id       String    @id @default(cuid())
+  userId   String
+  date     DateTime
+  checkIn  DateTime?
+  checkOut DateTime?
+  status   String    @default("PRESENT")
+  user     User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, date])
+}
+
+model LeaveRequest {
+  id         String        @id @default(cuid())
+  userId     String
+  type       LeaveType
+  startDate  DateTime
+  endDate    DateTime
+  days       Int
+  reason     String
+  status     RequestStatus @default(PENDING)
+  reviewedBy String?
+  user       User          @relation(fields: [userId], references: [id], onDelete: Cascade)
+  createdAt  DateTime      @default(now())
+}
+
+model OvertimeRequest {
+  id          String        @id @default(cuid())
+  userId      String
+  date        DateTime
+  hours       Float
+  reason      String
+  amountCents Int
+  status      RequestStatus @default(PENDING)
+  user        User          @relation(fields: [userId], references: [id], onDelete: Cascade)
+  createdAt   DateTime      @default(now())
+}
+
+model Policy {
+  id        String   @id @default(cuid())
+  title     String
+  category  String
+  content   String
+  source    String?
+  createdAt DateTime @default(now())
+}
+
+model AuditLog {
+  id        String   @id @default(cuid())
+  userId    String?
+  action    String
+  entity    String
+  entityId  String?
+  ipHash    String?
+  metadata  String?
+  createdAt DateTime @default(now())
+  user      User?    @relation(fields: [userId], references: [id], onDelete: SetNull)
+}
+
+model Contract {
+  id           String   @id @default(cuid())
+  userId       String
+  contractNumber String @unique
+  type         String   @default("PERMANENT")
+  startDate    DateTime
+  endDate      DateTime?
+  status       String   @default("ACTIVE")
+  salaryCents  Int
+  notes        String?
+  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  @@index([userId, status])
+}
+
+model PayrollRecord {
+  id             String   @id @default(cuid())
+  userId         String
+  month          String
+  grossCents     Int
+  deductionsCents Int      @default(0)
+  netCents       Int
+  status         String   @default("DRAFT")
+  paidAt         DateTime?
+  notes          String?
+  user           User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  @@unique([userId, month])
+  @@index([month, status])
+}

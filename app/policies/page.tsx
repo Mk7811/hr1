@@ -1,0 +1,2 @@
+import {db} from "@/lib/db";
+export default async function Policies(){const policies=await db.policy.findMany({orderBy:{createdAt:"desc"}});return <><h1>Policy Library</h1><p className="muted">Internal HR policies and Omani labour-law references.</p><div className="grid">{policies.map(policy=><article className="card" key={policy.id}><h2>{policy.title}</h2><p className="muted">{policy.category} · {policy.source}</p><p>{policy.content}</p></article>)}</div></>}
